@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Map Viewer</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; text-align: center; background-color: #f4f4f4; height: 100vh; display: flex; flex-direction: column; }
+        .controls { background: white; padding: 15px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2); z-index: 10; }
+        select { padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ddd; outline: none; cursor: pointer; }
+        select:hover { background-color: #eee; }
+        .map-container { flex-grow: 1; width: 100%; }
+        #map { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <h2>Select a City to View Map</h2>
+        <label for="citySelect">Choose City:</label>
+        <select id="citySelect" onchange="updateMap()">
+            <option value="">Select a city</option>
+            <option value="kolkata">Kolkata</option>
+            <option value="darjeeling">Darjeeling</option>
+        </select>
+    </div>
+
+    <div class="map-container">
+        <div id="map"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map', {
+            center: [22.5, 82], // Center of India
+            zoom: 5,
+            maxBounds: [[8, 68], [38, 97]], // India boundary limits
+            maxBoundsViscosity: 1.0,
+            minZoom: 5,
+            maxZoom: 15
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        var cityCoordinates = {
+            "kolkata": [22.5726, 88.3639],
+            "darjeeling": [27.0376, 88.2636]
+        };
+
+        var geoJsonFiles = {
+            "kolkata": "kolkata.geojson",
+            "darjeeling": "darjeeling.geojson"
+        };
+
+        var cityPolygon;
+
+        function updateMap() {
+            var city = document.getElementById("citySelect").value;
+
+            if (cityPolygon) {
+                map.removeLayer(cityPolygon);
+            }
+
+            if (city && cityCoordinates[city]) {
+                map.setView(cityCoordinates[city], 12);
+
+                var geoJsonFile = geoJsonFiles[city]; // Get correct GeoJSON file for the selected city
+
+                fetch(geoJsonFile)
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log("Loaded GeoJSON:", data); // Debugging
+
+                        cityPolygon = L.geoJSON(data, {
+                            style: { 
+                                color: "blue", 
+                                weight: 3, 
+                                fillColor: "rgba(0, 0, 255, 0.3)", 
+                                fillOpacity: 0 
+                            }
+                        }).addTo(map);
+
+                        map.fitBounds(cityPolygon.getBounds());
+                    })
+                    .catch(error => {
+                        console.error("Error loading GeoJSON:", error);
+                        alert("Failed to load city boundary.");
+                    });
+            }
+        }
+    </script>
+
+</body>
+</html>
